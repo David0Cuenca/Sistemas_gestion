@@ -1,4 +1,8 @@
-import pickle
+import json
+import os
+from tabnanny import check
+from tkinter.tix import Select
+from numpy import save
 
 # Persona: Clase abstracta, contendrá el nombre, apellidos, DNI, etc.
 class Persona:
@@ -16,16 +20,23 @@ class escuela:
         self.nombre = nombre
         self.localidad = localidad
         self.responsable = responsable
-        self.profesor = []
+        self.profesores = []
         self.alumnos = []
+        
+    def get_Profesores(self):
+        return self.alumnos
+            
+    def get_Alumnos(self):
+        return self.profesores
+    
     def ShowAlumnos(self):
         for alumno in self.alumnos:
             print(f"Alumnos en el colegio {self.nombre}" + alumno.toString())
-            
+
     def ShowProfesores(self):
-            for profesor in self.profesor:
-                print(f"Profesores en el colegio {self.nombre}" + profesor.toString())
-                
+        for profesor in self.profesores:
+            print(f"Profesores en el colegio {self.nombre}" + profesor.toString())
+    
     def __str__(self):
         return f"Nombre: {self.nombre}, localidad: {self.localidad}); responsable: {self.responsable}"
     
@@ -49,134 +60,110 @@ class Profesor(Persona):
     def __str__(self):
         return f"{super().__str__}, Tipos: {self.Tipos}"
     
+    
 # Menu principal
 def MainMenu():
-    print("1. Menu para los escuelas")
-    print("2. Menu para los profesores")
-    print("3. Menu para los alumnos")
-    print("4. Salir")
+    DataEscuela = CheckData()
     
-    option = input("Seleccione una opción: ")
-    MenuSelected(option)            
+    if not CheckData():
+        print("No hay escuelas registradas. Vamos a registrar una nueva.")
+        CreateEscuela()
 
-def MenuSelected(option):
-    if option == "1":
-        MenuEscuela()
-    elif option == "2":
-        MenuProfesor()
-    elif option == "3":
-        MenuAlumno()
-    elif option == "4":
-        MainMenu()
-    else:
-        print("Opción incorrecta")
-        
-def MenuEscuela():
-    print("1. Crear escuela")
-    print("2. Mostrar escuela")
-    print("3. Salir")
-    
-    option = input("Seleccione una opción: ")
-    if option == "1":
-        nombre = input("Nombre de la escuela: ")
-        localidad = input("Localidad de la escuela: ")
-        responsable = input("Responsable de la escuela: ")
-        createEscuela = escuela(nombre, localidad, responsable)
-        MainMenu()
-    elif option == "2":
-        ExistEscuelas = CheckData()
-        if ExistEscuelas:
-            print(ExistEscuelas)
-        else:
-            print("No se hay escuelas registradas")
-            MainMenu()
-    elif option == "3":
-        MainMenu()
-        
-def MenuProfesor():
-    print("1. Crear profesor")
-    print("2. Mostrar profesor")
-    print("3. Salir")
-    
-    option = input("Seleccione una opción: ")
-    if option == "1":
-        nombre = input("Nombre del profesor: ")
-        apellidos = input("Apellidos del profesor: ")
-        dni = input("DNI del profesor: ")
-        tipo = input("Tipo del profesor (Ciencias, Letras, Mixto): ")
-        profesor_nuevo = Profesor(nombre, apellidos, dni, tipo)
-        MainMenu()
-    elif option == "2":
-        ExistProfesores = CheckData()
-        if ExistProfesores:
-            print(ExistProfesores)
-        else:
-            print("No se hay profesores registrados")
-            MainMenu()
-    elif option == "3":
-        MainMenu()
+    print("Escuelas disponibles:")
+    for i, escuela in enumerate(DataEscuela, 0):
+        print(f"{i+1}. {escuela['nombre']}")
 
-# # Persistencia de datos
-# def guardar_datos(escuela):
-#     with open('datos_escuela.pkl', 'wb') as file:
-#         pickle.dump(escuela, file)
+    while True:
+        opcion = input("Seleccione una escuela existente (número): ")
+        if opcion.isdigit():
+            opcion = int(opcion)
+            if 1 <= opcion <= len(DataEscuela):
+                Select = DataEscuela[opcion - 1]
+                Secundary_Menu(Select)
+                break
+        print("Opción incorrecta. Inténtelo de nuevo.")      
+
+#Selector para las gestionar todas las entidades
+
+def Secundary_Menu(Select):
+
+    while True:
+        clear()
+        print(f"Escuela seleccionada: {Select['nombre']}")
+        print("----------------------------------")
+        print("1. Añadir profesor")
+        print("2. Añadir alumno")
+        print("3. Mostrar profesores")
+        print("4. Mostrar alumnos")
+        print("5. Atrás")
+
+        opcion = input("Seleccione una opción: ")
+        if opcion == "1":
+            CreateProfesor(Select)
+        elif opcion == "2":
+            CreateAlumno(Select)
+        elif opcion == "3":
+            Select.ShowProfesor()
+        elif opcion == "4":
+            Select.ShowAlumno()
+        elif opcion == "5":
+            exit()
+        else:
+            print("Opción incorrecta. Inténtelo de nuevo.")
+
+def CreateEscuela():
+    nombre = input("Nombre de la escuela: ")
+    localidad = input("Localidad de la escuela: ")
+    responsable = input("Responsable de la escuela: ")
+    createEscuela = escuela(nombre, localidad, responsable)
+    SaveData(createEscuela)
+    
+def CreateProfesor(Selected):
+    nombre = input("Nombre del profesor: ")
+    apellidos = input("Apellidos del profesor: ")
+    dni = input("DNI del profesor: ")
+    tipo = input("Tipo del profesor (Ciencias, Letras, Mixto): ")
+    createProfesor = Profesor(nombre, apellidos, dni, tipo)
+    Selected.profesor.append(createProfesor)
+    SaveData(Selected)
+
+def CreateAlumno(Selected):
+    nombre = input("Nombre del alumno: ")
+    apellidos = input("Apellidos del alumno: ")
+    dni = input("DNI del alumno: ")
+    curso = input("Curso del alumno: ")
+    profesor_r = input("Profesor responsable del alumno: ")
+    alumno_nuevo = Alumno(nombre, apellidos, dni, curso, profesor_r)
+    Selected.alumnos.append(alumno_nuevo)
+    SaveData(Selected)
+    
+              
+def SaveData(data):
+    existing_data = CheckData()
+    existing_data.append(data)
+    
+    try:
+        with open('datos_escuela.json', 'r') as file:
+            existing_data = json.load(file)
+        if isinstance(existing_data, list):
+            existing_data.append(data)
+        else:
+            existing_data = [existing_data, data]
+    except FileNotFoundError:
+        existing_data = [data]
+
+    with open('datos_escuela.json', 'w') as file:
+        json.dump(existing_data, file, default=lambda obj: obj.__dict__)
 
 def CheckData():
     try:
-        with open('datos_escuela.pkl', 'rb') as file:
-            return pickle.load(file)
+        with open('datos_escuela.json', 'r') as file:
+            return json.load(file)
     except FileNotFoundError:
-        return None
+        return []
 
-# # Programa principal
-# escuela_existente = cargar_datos()
+def clear():
+    os.system('cls' if os.name == 'nt' else 'clear')
 
-# if escuela_existente:
-#     escuela = escuela_existente
-# else:
-#     escuela = Escuela("Escuela Ejemplo", "Ciudad Ejemplo", "Responsable Ejemplo")
-
-# while True:
-#     mostrar_menu()
-#     opcion = input("Seleccione una opción: ")
-
-#     if opcion == "1":
-#         nombre = input("Nombre del profesor: ")
-#         apellidos = input("Apellidos del profesor: ")
-#         dni = input("DNI del profesor: ")
-#         tipo = input("Tipo del profesor (Ciencias, Letras, Mixto): ")
-#         profesor_nuevo = Profesor(nombre, apellidos, dni, tipo)
-#         escuela.agregar_profesor(profesor_nuevo)
-#         print("Profesor agregado correctamente.")
-
-#     elif opcion == "2":
-#         print("Profesores:")
-#         escuela.mostrar_profesores()
-
-#     elif opcion == "3":
-#         nombre = input("Nombre del alumno: ")
-#         apellidos = input("Apellidos del alumno: ")
-#         dni = input("DNI del alumno: ")
-#         curso = input("Curso del alumno: ")
-#         profesor_responsable = input("Profesor responsable del alumno: ")
-#         alumno_nuevo = Alumno(nombre, apellidos, dni, curso, profesor_responsable)
-#         escuela.agregar_alumno(alumno_nuevo)
-#         print("Alumno agregado correctamente.")
-
-#     elif opcion == "4":
-#         print("Alumnos:")
-#         escuela.mostrar_alumnos()
-
-#     elif opcion == "5":
-#         guardar_datos(escuela)
-#         print("Saliendo del programa. ¡Hasta luego!")
-#         break
-
-#     else:
-#         print("Opción no válida. Intente nuevamente.")
-            
-
-
-# #Datos de prueba
-# Alumnos = Alumno("Digimom","Mamon","123456789","1º","Mamaracho")
-# Alumnos.toString()
+clear()
+MainMenu()
