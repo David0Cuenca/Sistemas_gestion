@@ -14,8 +14,8 @@ class Persona:
 
 # Escuela: contendrá la información de las escuelas (nombre, localidad, responsable...).
 class Escuela:
-    def __init__(self, nombre, localidad, responsable):
-        self.nombre = nombre
+    def __init__(self, escuela_nombre, localidad, responsable):
+        self.escuela_nombre = escuela_nombre
         self.localidad = localidad
         self.responsable = responsable
         self.profesores = []
@@ -24,23 +24,23 @@ class Escuela:
     def ShowAlumnos(self):
         clear()
         if not self.alumnos:
-            print(f"No hay alumnos en el colegio {self.nombre}")
+            print(f"No hay alumnos en el colegio {self.escuela_nombre}")
         else:
-            print(f"Alumnos en el colegio {self.nombre}:")
+            print(f"Alumnos en el colegio {self.escuela_nombre}:")
             for alumno in self.alumnos:
                 print(f"{alumno}")
 
     def ShowProfesores(self):
         clear()
         if not self.profesores:
-            print(f"No hay profesores en el colegio {self.nombre}")
+            print(f"No hay profesores en el colegio {self.escuela_nombre}")
         else:
-            print(f"Profesores en el colegio {self.nombre}:")
+            print(f"Profesores en el colegio {self.escuela_nombre}:")
             for profesor in self.profesores:
-                print(f"Profesores en el colegio {self.nombre}: {profesor}")
+                print(f"Profesores en el colegio {self.escuela_nombre}: {profesor}")
     
     def __str__(self):
-        return f"Nombre: {self.nombre}, localidad: {self.localidad}); responsable: {self.responsable}"
+        return f"Nombre: {self.escuela_nombre}, localidad: {self.localidad}); responsable: {self.responsable}"
     
 
 # Alumno (subclase de Persona): contendrá la información de los alumnos de la escuela (nombre, curso, profesor responsable (sólo uno)).
@@ -74,7 +74,7 @@ def MainMenu():
 
     print("Escuelas disponibles:")
     for i, escuela in enumerate(DataEscuela, 0):
-        print(f"{i+1}. {escuela.nombre}")
+        print(f"{i+1}. {escuela.escuela_nombre}")
     while True:
         opcion = input("Seleccione una escuela existente (número) o pulse N para crear una nueva escuela: ")
         
@@ -215,7 +215,6 @@ def SaveData(data):
 
 
 
-
 def LoadData():
     try:
         with open('datos_escuela.json', 'r') as file:
@@ -227,12 +226,26 @@ def LoadData():
         return []
 
 def json_to_obj(json_data):
-    escuela = Escuela(json_data.get('nombre', ''), json_data.get('localidad', ''), json_data.get('responsable', ''))
-    escuela.profesores = [json_to_obj(profesor) for profesor in json_data.get('profesores', [])]
-    escuela.alumnos = [json_to_obj(alumno) for alumno in json_data.get('alumnos', [])]
-    return escuela
-
-
+    if 'escuela_nombre' in json_data:
+        escuela = Escuela(json_data.get('nombre_escuela', ''), json_data.get('localidad', ''), json_data.get('responsable', ''))
+        escuela.profesores = [json_to_obj(profesor) for profesor in json_data.get('profesores', [])]
+        escuela.alumnos = [json_to_obj(alumno) for alumno in json_data.get('alumnos', [])]
+        return escuela
+    elif 'alumnos' in json_data:
+        return Alumno(
+            json_data.get('alumno_nombre', ''),
+            json_data.get('apellidos', ''),
+            json_data.get('DNI', ''),
+            json_data.get('Curso', ''),
+            json_data.get('Profesor_R', '')
+        )
+    else:
+        return Profesor(
+            json_data.get('profesor_nombre', ''),
+            json_data.get('apellidos', ''),
+            json_data.get('DNI', ''),
+            json_data.get('Tipos', '')
+        )
 
 def clear():
     os.system('cls' if os.name == 'nt' else 'clear')
