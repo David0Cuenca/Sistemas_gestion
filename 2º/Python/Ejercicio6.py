@@ -1,8 +1,6 @@
 import json
 import os
 from tabnanny import check
-from tkinter.tix import Select
-from numpy import save
 
 # Persona: Clase abstracta, contendrá el nombre, apellidos, DNI, etc.
 class Persona:
@@ -15,27 +13,31 @@ class Persona:
         return f"DNI: {self.DNI}, Nombre: {self.Nombre}, Apellidos: {self.apellidos}"
 
 # Escuela: contendrá la información de las escuelas (nombre, localidad, responsable...).
-class escuela:
+class Escuela:
     def __init__(self, nombre, localidad, responsable):
         self.nombre = nombre
         self.localidad = localidad
         self.responsable = responsable
         self.profesores = []
         self.alumnos = []
-        
-    def get_Profesores(self):
-        return self.alumnos
-            
-    def get_Alumnos(self):
-        return self.profesores
     
     def ShowAlumnos(self):
-        for alumno in self.alumnos:
-            print(f"Alumnos en el colegio {self.nombre}" + alumno.toString())
+        clear()
+        if not self.alumnos:
+            print(f"No hay alumnos en el colegio {self.nombre}")
+        else:
+            print(f"Alumnos en el colegio {self.nombre}:")
+            for alumno in self.alumnos:
+                print(f"{alumno}")
 
     def ShowProfesores(self):
-        for profesor in self.profesores:
-            print(f"Profesores en el colegio {self.nombre}" + profesor.toString())
+        clear()
+        if not self.profesores:
+            print(f"No hay profesores en el colegio {self.nombre}")
+        else:
+            print(f"Profesores en el colegio {self.nombre}:")
+            for profesor in self.profesores:
+                print(f"Profesores en el colegio {self.nombre}: {profesor}")
     
     def __str__(self):
         return f"Nombre: {self.nombre}, localidad: {self.localidad}); responsable: {self.responsable}"
@@ -63,71 +65,89 @@ class Profesor(Persona):
     
 # Menu principal
 def MainMenu():
-    DataEscuela = CheckData()
+    clear()
+    DataEscuela = LoadData()
     
-    if not CheckData():
+    if not DataEscuela:
         print("No hay escuelas registradas. Vamos a registrar una nueva.")
         CreateEscuela()
 
     print("Escuelas disponibles:")
     for i, escuela in enumerate(DataEscuela, 0):
-        print(f"{i+1}. {escuela['nombre']}")
-
+        print(f"{i+1}. {escuela.nombre}")
     while True:
-        opcion = input("Seleccione una escuela existente (número): ")
+        opcion = input("Seleccione una escuela existente (número) o pulse N para crear una nueva escuela: ")
+        
         if opcion.isdigit():
             opcion = int(opcion)
             if 1 <= opcion <= len(DataEscuela):
                 Select = DataEscuela[opcion - 1]
                 Secundary_Menu(Select)
                 break
-        print("Opción incorrecta. Inténtelo de nuevo.")      
+        elif opcion == "n" or opcion == "N":
+            CreateEscuela()
+            break
+        else:
+            print("Opción incorrecta. Inténtelo de nuevo.")      
 
 #Selector para las gestionar todas las entidades
 
-def Secundary_Menu(Select):
+def Secundary_Menu(Select_Escuela):
+
+    options ={
+        "1": lambda: CreateProfesor(Select_Escuela),
+        "2": lambda: CreateAlumno(Select_Escuela),
+        "3": Select_Escuela.ShowProfesores,
+        "4": Select_Escuela.ShowAlumnos,
+        "5": lambda: EliminateProfesores(Select_Escuela),
+        "6": lambda: EliminateAlumnos(Select_Escuela),
+        "7": lambda: EliminateEscuela(Select_Escuela),
+        "8": MainMenu
+    }
 
     while True:
-        clear()
-        print(f"Escuela seleccionada: {Select['nombre']}")
+        print(f"Escuela seleccionada: {Select_Escuela.nombre}")
         print("----------------------------------")
         print("1. Añadir profesor")
         print("2. Añadir alumno")
         print("3. Mostrar profesores")
         print("4. Mostrar alumnos")
-        print("5. Atrás")
+        print("5. Eliminar profesor")
+        print("6. Eliminar alumno")
+        print("7. Eliminar esta escuela")
+        print("8. Atrás")
 
         opcion = input("Seleccione una opción: ")
-        if opcion == "1":
-            CreateProfesor(Select)
-        elif opcion == "2":
-            CreateAlumno(Select)
-        elif opcion == "3":
-            Select.ShowProfesor()
-        elif opcion == "4":
-            Select.ShowAlumno()
-        elif opcion == "5":
-            exit()
+        if opcion in options:
+            options[opcion]()
         else:
             print("Opción incorrecta. Inténtelo de nuevo.")
+        
+
 
 def CreateEscuela():
+    clear()
     nombre = input("Nombre de la escuela: ")
     localidad = input("Localidad de la escuela: ")
     responsable = input("Responsable de la escuela: ")
-    createEscuela = escuela(nombre, localidad, responsable)
+    createEscuela = Escuela(nombre, localidad, responsable)
     SaveData(createEscuela)
+    MainMenu()
+    
     
 def CreateProfesor(Selected):
+    clear()
     nombre = input("Nombre del profesor: ")
     apellidos = input("Apellidos del profesor: ")
     dni = input("DNI del profesor: ")
     tipo = input("Tipo del profesor (Ciencias, Letras, Mixto): ")
     createProfesor = Profesor(nombre, apellidos, dni, tipo)
-    Selected.profesor.append(createProfesor)
+    Selected.profesores.append(createProfesor)
     SaveData(Selected)
 
+
 def CreateAlumno(Selected):
+    clear()
     nombre = input("Nombre del alumno: ")
     apellidos = input("Apellidos del alumno: ")
     dni = input("DNI del alumno: ")
@@ -137,33 +157,84 @@ def CreateAlumno(Selected):
     Selected.alumnos.append(alumno_nuevo)
     SaveData(Selected)
     
-              
-def SaveData(data):
-    existing_data = CheckData()
-    existing_data.append(data)
     
-    try:
-        with open('datos_escuela.json', 'r') as file:
-            existing_data = json.load(file)
-        if isinstance(existing_data, list):
-            existing_data.append(data)
-        else:
-            existing_data = [existing_data, data]
-    except FileNotFoundError:
-        existing_data = [data]
+def EliminateAlumnos(Selected):
+    if Selected.alumnos == []:
+        print("No hay alumnos en esta escuela.")
+        return
+    else:
+        while True:
+            opcion = input("Seleccione un alumno a eliminar (número): ")
+            if opcion.isdigit():
+                opcion = int(opcion)
+                if 1 <= opcion <= len(Selected.alumnos):
+                    alumno_eliminar = Selected.alumnos[opcion - 1]
+                    Selected.alumnos.remove(alumno_eliminar)
+                    SaveData(Selected)
+                    break
+            print("Opción incorrecta. Inténtelo de nuevo.")
+
+def EliminateProfesores(Selected):
+    if Selected.profesores == []:
+        print("No hay profesores en esta escuela.")
+        return
+    else:
+        while True:
+            opcion = input("Seleccione un profesor a eliminar (número): ")
+            if opcion.isdigit():
+                opcion = int(opcion)
+                if 1 <= opcion <= len(Selected.profesores):
+                    profesor_eliminar = Selected.profesores[opcion - 1]
+                    Selected.profesores.remove(profesor_eliminar)
+                    SaveData(Selected)
+                    break
+            print("Opción incorrecta. Inténtelo de nuevo.")
+
+        
+def EliminateEscuela(Selected):
+    option = input("Seguro que desea eliminar el profesor? (S/N): ")
+    if option == "S" or option == "s":
+        DataEscuela = LoadData()
+        DataEscuela.remove(Selected)
+        SaveData(DataEscuela)
+        print(f"Escuela {Selected.nombre} eliminada.")
+    else:
+        print(f"No se eliminó la escuela {Selected.nombre}.")
+        
+
+def SaveData(data):
+    existing_data = LoadData()
+
+    if isinstance(existing_data, list):
+        existing_data.append(data)
+    else:
+        existing_data = [existing_data, data]
 
     with open('datos_escuela.json', 'w') as file:
         json.dump(existing_data, file, default=lambda obj: obj.__dict__)
 
-def CheckData():
+
+
+
+def LoadData():
     try:
         with open('datos_escuela.json', 'r') as file:
-            return json.load(file)
-    except FileNotFoundError:
+            data = json.load(file)
+            return [json_to_obj(item) for item in data]
+    except (FileNotFoundError, json.JSONDecodeError):
+        with open('datos_escuela.json', 'w') as file:
+            json.dump([], file)
         return []
+
+def json_to_obj(json_data):
+    escuela = Escuela(json_data.get('nombre', ''), json_data.get('localidad', ''), json_data.get('responsable', ''))
+    escuela.profesores = [json_to_obj(profesor) for profesor in json_data.get('profesores', [])]
+    escuela.alumnos = [json_to_obj(alumno) for alumno in json_data.get('alumnos', [])]
+    return escuela
+
+
 
 def clear():
     os.system('cls' if os.name == 'nt' else 'clear')
 
-clear()
 MainMenu()
